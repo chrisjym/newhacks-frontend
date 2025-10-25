@@ -17,7 +17,7 @@ function Home() {
       <nav style={styles.navbar}>
         <div style={styles.navContent}>
           <div style={styles.logo}>
-            <span style={styles.logoText}>Locality</span>
+            <span style={styles.logoText}>Travel Al-gent</span>
           </div>
           <div style={styles.navLinks}>
             <a href="#features" style={styles.navLink}>
