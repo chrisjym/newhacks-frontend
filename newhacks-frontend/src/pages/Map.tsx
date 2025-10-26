@@ -30,9 +30,39 @@ const redIcon = new L.Icon({
   shadowSize: [41, 41],
 });
 
+const greenIcon = new L.Icon({
+  iconUrl:
+    "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png",
+  shadowUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41],
+});
+
+const blueIcon = new L.Icon({
+  iconUrl:
+    "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png",
+  shadowUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41],
+});
+
 interface Coordinates {
   lat: number;
   lng: number;
+}
+
+interface Activity {
+  name: string;
+  longitude: number;
+  latitude: number;
+  type: string;
+  description: string;
 }
 
 // Props interface for ClickableMap
@@ -57,7 +87,11 @@ function ClickableMap({ markers, setMarkers }: ClickableMapProps) {
   return (
     <>
       {markers.map((position, idx) => (
-        <Marker key={idx} position={[position.lat, position.lng]}>
+        <Marker
+          key={idx}
+          position={[position.lat, position.lng]}
+          icon={greenIcon}
+        >
           <Popup>
             <strong>Coordinates:</strong>
             <br />
@@ -81,15 +115,13 @@ function ClickableMap({ markers, setMarkers }: ClickableMapProps) {
 export default function InteractiveMap() {
   // Single source of truth for all markers
   const [markers, setMarkers] = useState<Coordinates[]>([]);
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [loading, setLoading] = useState(false);
 
   // Function to prepare data for backend
   const prepareMarkersForBackend = () => {
     return {
-      city: "Paris", // You can make this dynamic later
-      coordinates: markers.map((m) => ({
-        latitude: m.lat,
-        longitude: m.lng,
-      })),
+      points: markers.map((m) => [m.lng, m.lat]),
     };
   };
 
@@ -101,12 +133,12 @@ export default function InteractiveMap() {
     }
 
     const dataToSend = prepareMarkersForBackend();
-
     console.log("Sending to backend:", dataToSend);
 
+    setLoading(true);
+
     try {
-      // Replace with your actual backend URL
-      const response = await fetch("http://localhost:5000/api/coordinates", {
+      const response = await fetch("http://localhost:8000/api/coordinates", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -117,13 +149,22 @@ export default function InteractiveMap() {
       if (response.ok) {
         const result = await response.json();
         console.log("Backend response:", result);
-        alert("Coordinates sent successfully!");
+
+        if (result.status === "success" && result.recommended_places) {
+          setActivities(result.recommended_places);
+          alert(`Found ${result.recommended_places.length} activities!`);
+        } else {
+          alert("No activities found");
+          setActivities([]);
+        }
       } else {
         throw new Error("Failed to send data");
       }
     } catch (error) {
       console.error("Error sending to backend:", error);
       alert("Failed to send coordinates to backend");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -145,8 +186,46 @@ export default function InteractiveMap() {
             Paris
           </Popup>
         </Marker>
-        {/* Pass markers state to ClickableMap */}
+
+        {/* User-added markers (green) */}
         <ClickableMap markers={markers} setMarkers={setMarkers} />
+
+        {/* Activity markers (blue) */}
+        {activities.map((activity, idx) => (
+          <Marker
+            key={`activity-${idx}`}
+            position={[activity.latitude, activity.longitude]}
+            icon={blueIcon}
+          >
+            <Popup>
+              <div style={{ minWidth: "200px" }}>
+                <strong style={{ fontSize: "16px", color: "#667eea" }}>
+                  {activity.name}
+                </strong>
+                <br />
+                <span
+                  style={{
+                    fontSize: "12px",
+                    color: "#666",
+                    fontStyle: "italic",
+                  }}
+                >
+                  {activity.type}
+                </span>
+                <br />
+                <br />
+                <p style={{ margin: "8px 0", fontSize: "14px" }}>
+                  {activity.description}
+                </p>
+                <hr style={{ margin: "8px 0" }} />
+                <small style={{ color: "#888" }}>
+                  📍 {activity.latitude.toFixed(4)},{" "}
+                  {activity.longitude.toFixed(4)}
+                </small>
+              </div>
+            </Popup>
+          </Marker>
+        ))}
       </MapContainer>
 
       {/* Coordinates Box - Bottom Right Corner */}
@@ -172,21 +251,27 @@ export default function InteractiveMap() {
 
         <button
           onClick={sendToBackend}
-          disabled={markers.length === 0}
+          disabled={markers.length === 0 || loading}
           style={{
             ...styles.sendButton,
-            ...(markers.length > 0
+            ...(markers.length > 0 && !loading
               ? styles.sendButtonActive
               : styles.sendButtonDisabled),
           }}
         >
-          Send Coordinates
+          {loading ? "Loading..." : "Find Activities"}
         </button>
 
         {markers.length > 0 && (
           <button onClick={() => setMarkers([])} style={styles.clearButton}>
             Clear All
           </button>
+        )}
+
+        {activities.length > 0 && (
+          <div style={styles.activityCount}>
+            ✨ {activities.length} activities found
+          </div>
         )}
       </div>
     </div>
@@ -274,5 +359,14 @@ const styles = {
     cursor: "pointer",
     fontWeight: "600",
     fontSize: "12px",
+  },
+  activityCount: {
+    marginTop: "12px",
+    padding: "8px",
+    backgroundColor: "#667eea",
+    borderRadius: "6px",
+    textAlign: "center" as "center",
+    fontSize: "12px",
+    fontWeight: "600",
   },
 };

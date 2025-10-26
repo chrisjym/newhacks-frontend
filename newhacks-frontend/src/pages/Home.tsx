@@ -17,7 +17,7 @@ function Home() {
       <nav style={styles.navbar}>
         <div style={styles.navContent}>
           <div style={styles.logo}>
-            <span style={styles.logoText}>Travel Al-gent</span>
+            <span style={styles.logoText}>Travel AI-gent</span>
           </div>
           <div style={styles.navLinks}>
             <a href="#features" style={styles.navLink}>
@@ -74,7 +74,7 @@ function Home() {
                   Explore
                 </button>
               </div>
-
+              <br />
               {city && (
                 <div style={styles.preview}>
                   <span style={styles.previewText}>Ready to explore:</span>
